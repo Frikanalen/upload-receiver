@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# (magic file name)
+# pylint: disable=invalid-name
+
 """ This script is called by tusd as the user initiates an upload. """
 
 import json
@@ -12,10 +15,12 @@ SESSION_COOKIE = 'fk:session'
 FK_API = os.environ.get('FK_API', 'http://host.docker.internal:8000')
 FK_API_KEY = os.environ.get('FK_API_KEY', None)
 
-logger.configure(handlers = [{"sink": sys.stderr, "serialize": True}])
+logger.configure(handlers=[{"sink": sys.stderr, "serialize": True}])
+
 
 class AuthenticationException(Exception):
     """ Raised if the user could not be authenticated."""
+
 
 def refuse(error_message: str):
     """ Reject an incoming request. The output given to stdout will be returned
@@ -25,9 +30,13 @@ def refuse(error_message: str):
     print(error_message)
     sys.exit(1)
 
+
 def authenticate(cookies: dict) -> str:
+    """ Authenticate the request. Returns user's email if authenticated, raises
+    an AuthenticationException if not."""
     session_id = _parse_cookies(cookies).get(SESSION_COOKIE)
-    user_request = requests.get(f'{FK_API}/auth/user', cookies={SESSION_COOKIE: session_id})
+    user_request = requests.get(
+        f'{FK_API}/auth/user', cookies={SESSION_COOKIE: session_id})
     user_info = user_request.json()
 
     if user_info['authenticated'] is True:
@@ -35,8 +44,10 @@ def authenticate(cookies: dict) -> str:
 
     raise AuthenticationException("Unauthorized")
 
+
 def _parse_cookies(cookie_header: str) -> dict:
     return dict([tuple(x.split('=')) for x in cookie_header.split('; ')])
+
 
 if __name__ == '__main__':
     logger.info('pre-create hook starting')
@@ -45,24 +56,26 @@ if __name__ == '__main__':
         request = json.load(sys.stdin)
 
         if 'X-Forwarded-For' in request['HTTPRequest']['Header']:
-            logger = logger.bind(remote_addr=request['HTTPRequest']['Header']['X-Forwarded-For'])
+            logger = logger.bind(
+                remote_addr=request['HTTPRequest']['Header']['X-Forwarded-For'])
         else:
-            logger = logger.bind(remote_addr=request['HTTPRequest']['RemoteAddr'])
+            logger = logger.bind(
+                remote_addr=request['HTTPRequest']['RemoteAddr'])
 
         # print(json.dumps(request, indent=2), file=sys.stderr)
 
         try:
             filename = request['Upload']['MetaData']['fileName']
         except KeyError as Exc:
-            raise AuthenticationException('Missing original filename!') from Exc
+            raise AuthenticationException(
+                'Missing original filename!') from Exc
 
         try:
             email = authenticate(request['HTTPRequest']['Header']['Cookie'][0])
         except KeyError as Exc:
-            raise AuthenticationException(f'Missing session cookie {SESSION_COOKIE}')
+            raise AuthenticationException(
+                f'Missing session cookie {SESSION_COOKIE}') from Exc
         logger = logger.bind(email=email)
-
-
 
         logger.info(f'successfully authenticated {email}')
     except AuthenticationException as e:
