@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 """ This script is invoked by tusd upon successful reception of a complete file.
-
-"""
-import json
-import sys
-from loguru import logger
-
-def read_upload_status():
-    """ Reads the JSON data from tusd, and returns a tuple of numeric video ID, original
-    file name, and S3 key.
-
-    Example JSON data:
+Example JSON data:
 
     "Upload": {
         "ID": "9a1a39798141223fb20f133f2bc58535+2~Qe1PIASV0XqmPse9fP-oq6PMzy-ZvdD",
@@ -29,10 +19,42 @@ def read_upload_status():
             "Type": "s3store"
         }
     }
-    """
-    s = json.load(sys.stdin)["Upload"]
-    return (s["MetaData"]["fileName"], s["Storage"]["Key"])
+"""
+import json
+import sys
+import os
+from loguru import logger
+import requests
+logger.configure(handlers = [{"sink": sys.stderr, "serialize": True}])
 
+FK_INGEST_API = os.environ.get("FK_INGEST_API", None)
+if FK_INGEST_API is None:
+    _croak('FK_INGEST_API is not set!')
+
+FK_API_KEY = os.environ.get("FK_API_KEY", None)
+if FK_API_KEY is None:
+    _croak('FK_API_KEY is not set!')
+
+def _croak(error_message: str):
+    """ Fail with an error message printed both using the logger, and output to stderr """
+    logger.warning(error_message)
+    print(error_message)
+    sys.exit(1)
 
 if __name__ == '__main__':
-    fileName, objectKey = read_upload_status()
+    request = json.load(sys.stdin)
+    print(json.dumps(request, indent=2), file=sys.stderr)
+
+    fileName = request["Upload"]["MetaData"]["fileName"]
+    objectKey = request["Upload"]["Storage"]["Key"]
+
+    response = requests.post(
+        f'{FK_INGEST_API}/ingest',
+        {'fileName': fileName, 'objectKey': objectKey},
+        headers={
+            'Cookie': request["HTTPRequest"]["Header"]["Cookie"][0],
+            'X-Api-Key': FK_API_KEY
+            }
+    )
+
+    print(json.dumps(response.text), file=sys.stderr)

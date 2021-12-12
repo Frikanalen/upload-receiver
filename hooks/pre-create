@@ -9,7 +9,7 @@ from loguru import logger
 
 SESSION_COOKIE = 'fk:session'
 
-FK_API = os.environ.get('FK_API', 'http://localhost:8000')
+FK_API = os.environ.get('FK_API', 'http://host.docker.internal:8000')
 FK_API_KEY = os.environ.get('FK_API_KEY', None)
 
 logger.configure(handlers = [{"sink": sys.stderr, "serialize": True}])
@@ -17,14 +17,16 @@ logger.configure(handlers = [{"sink": sys.stderr, "serialize": True}])
 class AuthenticationException(Exception):
     """ Raised if the user could not be authenticated."""
 
-def refuse(string):
+def refuse(error_message: str):
     """ Reject an incoming request. The output given to stdout will be returned
     as part of the error message which is presently displayed on the front end.
     The output given to standard error is logged by the upload receiver. """
-    logger.warning(string)
+    logger.warning(error_message)
+    print(error_message)
     sys.exit(1)
 
-def authenticate(session_id: str) -> str:
+def authenticate(cookies: dict) -> str:
+    session_id = _parse_cookies(cookies).get(SESSION_COOKIE)
     user_request = requests.get(f'{FK_API}/auth/user', cookies={SESSION_COOKIE: session_id})
     user_info = user_request.json()
 
@@ -41,21 +43,26 @@ if __name__ == '__main__':
 
     try:
         request = json.load(sys.stdin)
-        print(json.dumps(request, indent=2), file=sys.stderr)
-
-        try:
-            filename = request['Upload']['MetaData']['filename']
-        except KeyError as Exc:
-            raise AuthenticationException('Missing original filename!') from Exc
-
-        cookies = _parse_cookies(request['HTTPUpload']['Header']['Cookie'])
-        email = authenticate(cookies[SESSION_COOKIE])
-        logger = logger.bind(email=email)
 
         if 'X-Forwarded-For' in request['HTTPRequest']['Header']:
             logger = logger.bind(remote_addr=request['HTTPRequest']['Header']['X-Forwarded-For'])
         else:
             logger = logger.bind(remote_addr=request['HTTPRequest']['RemoteAddr'])
+
+        # print(json.dumps(request, indent=2), file=sys.stderr)
+
+        try:
+            filename = request['Upload']['MetaData']['fileName']
+        except KeyError as Exc:
+            raise AuthenticationException('Missing original filename!') from Exc
+
+        try:
+            email = authenticate(request['HTTPRequest']['Header']['Cookie'][0])
+        except KeyError as Exc:
+            raise AuthenticationException(f'Missing session cookie {SESSION_COOKIE}')
+        logger = logger.bind(email=email)
+
+
 
         logger.info(f'successfully authenticated {email}')
     except AuthenticationException as e:

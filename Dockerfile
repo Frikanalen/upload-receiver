@@ -1,4 +1,4 @@
-FROM tusproject/tusd
+FROM tusproject/tusd AS builder
 
 USER root
 COPY requirements.txt .
@@ -7,6 +7,10 @@ RUN apk add py3-pip
 RUN pip3 install -r requirements.txt
 
 USER tusd
+EXPOSE 1080
+
+FROM builder
 
 COPY hooks /srv/tusd-hooks
-CMD ["-behind-proxy","-s3-bucket","incoming","-s3-endpoint","http://s3-backend","-hooks-dir","/srv/tusd-hooks","-base-path","/api/videos/upload"]
+
+ENTRYPOINT tusd -behind-proxy -s3-bucket incoming -s3-endpoint ${AWS_ENDPOINT} -hooks-dir /srv/tusd-hooks -base-path /videos/upload
