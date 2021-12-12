@@ -1,6 +1,7 @@
-AWS_ENDPOINT=http://host.docker.internal:9444
-FK_INGEST_API=http://host.docker.internal:8001
+FK_API=http://localhost:8000
+FK_INGEST_API=http://localhost:8001
 FK_API_KEY=1234
+AWS_ENDPOINT=http://localhost:9000
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 AWS_REGION=no-where-1

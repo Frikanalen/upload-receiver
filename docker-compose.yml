@@ -1,4 +1,7 @@
-s3-backend:
-  image: scireum/s3-ninja
-  ports:
-    - "9444:9000"
+version: '3.4'
+services:
+  s3-backend:
+    image: scireum/s3-ninja
+    network_mode: host
+    ports:
+      - 9000

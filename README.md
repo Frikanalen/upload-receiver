@@ -10,8 +10,12 @@ I have chosen to write these in Python.
 We use s3-ninja for testing, which emulates an S3 object store.
 
 ```bash
+# bring up s3-ninja
+docker-compose up -d
+# build local docker package
 docker build -t upload-receiver .
-docker run --env-file dev-env -p 1080:1080 --add-host=host.docker.internal:host-gateway upload-receiver
+# run it
+docker run --net=host --env-file dev-env -p 1080  upload-receiver
 ```
 
 ## Production

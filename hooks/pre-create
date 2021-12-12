@@ -12,8 +12,24 @@ from loguru import logger
 
 SESSION_COOKIE = 'fk:session'
 
-FK_API = os.environ.get('FK_API', 'http://host.docker.internal:8000')
+
+def _croak(error_message: str):
+    """ Fail with an error message printed both using the logger, and output to stderr """
+    logger.warning(error_message)
+    print(error_message)
+    sys.exit(1)
+
+
+FK_API = os.environ.get('FK_API', None)
 FK_API_KEY = os.environ.get('FK_API_KEY', None)
+
+FK_API_KEY = os.environ.get("FK_API_KEY", None)
+if FK_API_KEY is None:
+    _croak('FK_API_KEY is not set!')
+
+FK_API = os.environ.get("FK_API", None)
+if FK_API is None:
+    _croak('FK_API is not set!')
 
 logger.configure(handlers=[{"sink": sys.stderr, "serialize": True}])
 
@@ -62,7 +78,7 @@ if __name__ == '__main__':
             logger = logger.bind(
                 remote_addr=request['HTTPRequest']['RemoteAddr'])
 
-        # print(json.dumps(request, indent=2), file=sys.stderr)
+        print(json.dumps(request, indent=2), file=sys.stderr)
 
         try:
             filename = request['Upload']['MetaData']['fileName']
