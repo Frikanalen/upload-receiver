@@ -1,70 +1,83 @@
 #!/usr/bin/env python3
-# (magic file name)
-# pylint: disable=invalid-name
+"""This script is invoked by tusd upon successful reception of a complete file."""
 
-""" This script is invoked by tusd upon successful reception of a complete file.
-Example JSON data:
+import json
+import logging
+import os
+import sys
+
+logging.basicConfig(level=logging.DEBUG)
+
+HOSTNAME = "file01"
+USERNAME = "fkupload"
+
+
+def read_upload_status():
+    """Reads the JSON data from tusd, and returns a tuple of numeric video ID, original
+    file name, and S3 key.
+
+    Outer JSON data:
+     {
+        "Type": "post-finish",
+        "Event": {
+          "Upload": {
+            "ID": "71637df20c5052a58a3a40625ecd1dd5",
+            ...
+
+
+    Example of inner JSON data:
 
     "Upload": {
         "ID": "9a1a39798141223fb20f133f2bc58535+2~Qe1PIASV0XqmPse9fP-oq6PMzy-ZvdD",
         "IsFinal": false,
         "IsPartial": false,
         "MetaData": {
-            "fileName": "IMG_1133.MOV",
+            "origFileName": "IMG_1133.MOV",
+            "uploadToken": "6182701c94024dd4ac75866ed5071bf1",
+            "videoID": "626739"
         },
         "Offset": 9844291,
         "PartialUploads": null,
         "Size": 9844291,
         "SizeIsDeferred": false,
         "Storage": {
-            "Bucket": "incoming",
-            "Key": "9a1a39798141223fb20f133f2bc58535",
-            "Type": "s3store"
+            "Type": "filestore",
+            "Path": "/my/upload/directory/14b1c4c77771671a8479bc0444bbc5ce",
         }
     }
-"""
-import json
-import sys
-import os
-from loguru import logger
-import requests
+    """
+    s = json.load(sys.stdin)
+    print(json.dumps(s, indent=2), file=sys.stderr)
 
-logger.configure(handlers=[{"sink": sys.stderr, "serialize": True}])
+    s = s["Event"]["Upload"]
 
-
-def _croak(error_message: str):
-    """ Fail with an error message printed both using the logger, and output to stderr """
-    logger.warning(error_message)
-    print(error_message)
-    sys.exit(1)
+    return (s["MetaData"]["videoID"], s["MetaData"]["origFileName"], s["Storage"]["Path"])
 
 
-FK_INGEST_API = os.environ.get("FK_INGEST_API", None)
-if FK_INGEST_API is None:
-    _croak('FK_INGEST_API is not set!')
+def upload_video(video_id, path, orig_filename):
+    """Creates a temporary directory on file01, copies the file, and moves it
+    into the move_and_process watchfolder."""
 
-FK_API_KEY = os.environ.get("FK_API_KEY", None)
-if FK_API_KEY is None:
-    _croak('FK_API_KEY is not set!')
+    legacy_temp_directory = f"/srv/fkupload/adaptor_incoming/{video_id}"
+    legacy_temp_filename = os.path.join(legacy_temp_directory, orig_filename)
+    legacy_watchfolder = f"/srv/fkupload/finished_uploads/{video_id}"
+
+    logging.debug(f"Creating directory {HOSTNAME}:{legacy_temp_directory}")
+    os.mkdir(legacy_temp_directory)
+
+    logging.debug(f"Copying {path} to {HOSTNAME}:{legacy_temp_filename}...")
+    os.rename(path, legacy_temp_filename)
+
+    logging.debug(f"Moving from {legacy_temp_directory} {legacy_watchfolder}")
+    os.rename(legacy_temp_directory, legacy_watchfolder)
+
+    logging.debug(f"Cleaning up, deleting {path}")
+    os.unlink(path + ".info")
 
 
-if __name__ == '__main__':
-    request = json.load(sys.stdin)
-    print(json.dumps(request, indent=2), file=sys.stderr)
-
-    request_data = {
-        'fileName': request["Upload"]["MetaData"]["fileName"],
-        'objectKey': request["Upload"]["Storage"]["Key"],
-        'uploadId': request["Upload"]["ID"],
-    }
-
-    response = requests.post(
-        f'{FK_INGEST_API}/ingest',
-        request_data,
-        headers={
-            'Cookie': request["HTTPRequest"]["Header"]["Cookie"][0],
-            'X-Api-Key': FK_API_KEY
-        }
-    )
-
-    print(json.dumps(response.text), file=sys.stderr)
+if __name__ == "__main__":
+    logging.info("Pre-finish hook starting")
+    video_id, orig_filename, path = read_upload_status()
+    logging.info(f"Video ID: {video_id} File name: {orig_filename}")
+    upload_video(video_id, path, orig_filename)
+    logging.info("Copy complete")
