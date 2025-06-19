@@ -21,16 +21,17 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-
 FROM tusproject/tusd:v2.8.0
 
 # Copy the application from the builder
 COPY --from=deps --chown=app:app /app .
+# And uv too
+COPY --from=deps /bin/uv /bin/uv
+COPY --from=deps /bin/uvx /bin/uvx
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-COPY hooks /hooks
-
 ENTRYPOINT [ "tusd" ]
+
 CMD ["-behind-proxy", "-port=1080", "-cors-allow-credentials", "true", "-cors-allow-headers=X-CSRFToken", "-hooks-dir=/hooks"]
