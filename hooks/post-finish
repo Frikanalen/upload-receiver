@@ -21,10 +21,6 @@ class MetaData(BaseModel):
 
 logging.basicConfig(level=logging.DEBUG)
 
-HOSTNAME = "file01"
-USERNAME = "fkupload"
-
-
 def read_upload_status() -> Tuple[str, str, str]:
     """Reads the JSON data from tusd, and returns a tuple of numeric video ID, original
     file name, and location of the uploaded file."""
@@ -49,10 +45,10 @@ def upload_video(video_id: str, path: str, orig_filename: str):
     legacy_temp_filename = os.path.join(legacy_temp_directory, orig_filename)
     legacy_watchfolder = f"/srv/fkupload/finished_uploads/{video_id}"
 
-    logging.debug(f"Creating directory {HOSTNAME}:{legacy_temp_directory}")
+    logging.debug(f"Creating directory {legacy_temp_directory}")
     os.mkdir(legacy_temp_directory)
 
-    logging.debug(f"Copying {path} to {HOSTNAME}:{legacy_temp_filename}...")
+    logging.debug(f"Copying {path} to {legacy_temp_filename}...")
     os.rename(path, legacy_temp_filename)
 
     logging.debug(f"Moving from {legacy_temp_directory} {legacy_watchfolder}")
