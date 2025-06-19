@@ -13,6 +13,6 @@ docker build -t upload-receiver .
 docker run --net=host --env-file dev-env -p 1080 upload-receiver
 ```
 
-## Hoooks
+## Hooks
 
-** post-finish ** copies to the ingest watch folder.
+**post-finish** copies to the ingest watch folder.
