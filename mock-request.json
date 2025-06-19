@@ -1,0 +1,61 @@
+{
+  "Type": "post-finish",
+  "Event": {
+    "Upload": {
+      "ID": "deadbeefdeadbeefdeadbeef",
+      "Size": 684423159,
+      "SizeIsDeferred": false,
+      "Offset": 684423159,
+      "MetaData": {
+        "origFileName": "Startskuddet går!",
+        "uploadToken": "6a2edd3d1afe4039810756010293178c",
+        "videoID": "1337"
+      },
+      "IsPartial": false,
+      "IsFinal": false,
+      "PartialUploads": [],
+      "Storage": {
+        "Path": "data/deadbeefdeadbeefdeadbeef",
+        "Type": "filestore"
+      }
+    },
+    "HTTPRequest": {
+      "Method": "PATCH",
+      "URI": "/files/deadbeefdeadbeefdeadbeef",
+      "RemoteAddr": "127.0.0.1:45680",
+      "Header": {
+        "Accept": ["application/json, text/plain, */*"],
+        "Accept-Encoding": ["gzip, deflate, br, zstd"],
+        "Accept-Language": [
+          "nb,no;q=0.9,nn;q=0.8,en-US;q=0.7,en;q=0.6,pl;q=0.5,de;q=0.4"
+        ],
+        "Connection": ["upgrade"],
+        "Content-Length": ["2848759"],
+        "Content-Type": ["application/offset+octet-stream"],
+        "Host": ["fkupload"],
+        "Origin": ["https://frikanalen.no"],
+        "Referer": ["https://frikanalen.no/"],
+        "Sec-Ch-Ua": [
+          "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\""
+        ],
+        "Sec-Ch-Ua-Mobile": ["?0"],
+        "Sec-Ch-Ua-Platform": ["\"Windows\""],
+        "Sec-Fetch-Dest": ["empty"],
+        "Sec-Fetch-Mode": ["cors"],
+        "Sec-Fetch-Site": ["same-site"],
+        "Tus-Resumable": ["1.0.0"],
+        "Upload-Offset": ["681574400"],
+        "User-Agent": [
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+        ],
+        "X-Csrftoken": [
+          "7amWVdijrgjBcWmLZmGQrTTIAPnUOYE2Kn6umeLtts0kft24gJ4k5WUdZSDmMs41"
+        ],
+        "X-Forwarded-For": ["13.37.13.37"],
+        "X-Forwarded-Host": ["upload.frikanalen.no"],
+        "X-Forwarded-Proto": ["https"],
+        "X-Real-Ip": ["13.37.13.37"]
+      }
+    }
+  }
+}
