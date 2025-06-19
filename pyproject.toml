@@ -4,17 +4,14 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "requests>=2.32.4",
-]
-
-[tool.uv.scripts]
-format = "ruff format hooks/post-finish"
+dependencies = ["requests>=2.32.4"]
 
 [tool.ruff]
 line-length = 100
+include = ["hooks/*"]
 
 [dependency-groups]
 dev = [
+    "datamodel-code-generator>=0.31.1",
     "ruff>=0.12.0",
 ]
