@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """This script is invoked by tusd upon successful reception of a complete file."""
 
-import json
+from dataclasses import dataclass
 import logging
 import os
+from pathlib import Path
 import sys
 
-from typing import Tuple
+from pprint import pp
 
 from pydantic import BaseModel
 from hookschema import HookRequest
@@ -20,51 +21,55 @@ class MetaData(BaseModel):
     uploadToken: str
 
 
+@dataclass
+class CompletedUpload:
+    """Data structure to hold information about a completed upload."""
+
+    video_id: str
+    orig_filename: str
+    path: str
+
+
 logging.basicConfig(level=logging.DEBUG)
 
 
-def read_upload_status() -> Tuple[str, str, str]:
+def read_upload_status() -> CompletedUpload:
     """Reads the JSON data from tusd, and returns a tuple of numeric video ID, original
     file name, and location of the uploaded file."""
 
     hook_request = HookRequest.model_validate_json(sys.stdin.read())
 
     upload = hook_request.Event.Upload
-    metadata = MetaData.model_validate(upload.MetaData_1)
+    pp(upload.model_dump(), stream=sys.stderr)
 
-    print(json.dumps(upload.model_dump(), indent=2), file=sys.stderr)
+    metadata = MetaData.model_validate(upload.MetaData_1.model_dump())
 
     video_id = metadata.videoID
     orig_filename = metadata.origFileName
     path = upload.Storage["Path"]
 
-    return (video_id, orig_filename, path)
+    return CompletedUpload(video_id=video_id, orig_filename=orig_filename, path=path)
+
+
+watchfolder = Path("/srv/fkupload/finished_uploads")
 
 
 def upload_video(video_id: str, path: str, orig_filename: str):
     """Creates a temporary directory on file01, copies the file, and moves it
     into the move_and_process watchfolder."""
 
-    legacy_temp_directory = f"/srv/fkupload/adaptor_incoming/{video_id}"
-    legacy_temp_filename = os.path.join(legacy_temp_directory, orig_filename)
-    legacy_watchfolder = f"/srv/fkupload/finished_uploads/{video_id}"
+    # todo for tomorrow: figure out how this file can be copied without
+    # risking inotify starting work on a partial file.
+    # Is this just massively overcomplicated because it used to be via scp?
+    legacy_watchfolder = watchfolder / video_id / orig_filename
 
-    logging.debug(f"Creating directory {legacy_temp_directory}")
-    os.mkdir(legacy_temp_directory)
-
-    logging.debug(f"Copying {path} to {legacy_temp_filename}...")
-    os.rename(path, legacy_temp_filename)
-
-    logging.debug(f"Moving from {legacy_temp_directory} {legacy_watchfolder}")
-    os.rename(legacy_temp_directory, legacy_watchfolder)
-
-    logging.debug(f"Cleaning up, deleting {path}")
-    os.unlink(path + ".info")
+    logging.debug(f"Copying {path} to {legacy_watchfolder}...")
+    os.rename(path, legacy_watchfolder)
 
 
 if __name__ == "__main__":
     logging.info("Pre-finish hook starting")
-    video_id, orig_filename, path = read_upload_status()
-    logging.info(f"Video ID: {video_id} File name: {orig_filename}")
-    upload_video(video_id, path, orig_filename)
+    upload = read_upload_status()
+    logging.info(upload)
+    upload_video(upload.video_id, upload.path, upload.orig_filename)
     logging.info("Copy complete")
